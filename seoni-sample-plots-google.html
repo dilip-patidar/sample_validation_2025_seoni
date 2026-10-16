@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Seoni Sample Plots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed Google map with a field-notebook rail on the left (stats, layers, filters, sample list). */
+:root{
+  --bg:#f3f4f1; --paper:#ffffff; --ink:#1c211e; --muted:#5e6a63; --rule:#d8ddd7; --rule-soft:#e8ebe6;
+  --accent:#1c211e;
+  --pre:#3987e5;   --eoy:#d95926;   --sampled:#199e70; --sampled-soft:rgba(25,158,112,.16); --ctl:#e87ba4;
+  --plot:#6b7a72; --bad:#c2362b;
+  --f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --rail-w:340px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121614; --paper:#1a1f1c; --ink:#e6eae7; --muted:#9ba69f; --rule:#2d3531; --rule-soft:#232a26;
+  --accent:#e6eae7; --plot:#9aa79f; --bad:#ff7466; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --paper:#1a1f1c; --ink:#e6eae7; --muted:#9ba69f; --rule:#2d3531; --rule-soft:#232a26;
+  --accent:#e6eae7; --plot:#9aa79f; --bad:#ff7466; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);overflow:hidden}
+.app{display:grid;grid-template-columns:var(--rail-w) minmax(0,1fr);height:100%}
+.rail{background:var(--paper);border-right:1px solid var(--rule);overflow-y:auto;overscroll-behavior:contain;min-width:0;display:flex;flex-direction:column}
+.rail>section{padding:16px 18px;border-bottom:1px solid var(--rule-soft);display:grid;gap:10px}
+.rail>section:last-child{border-bottom:0}
+.eyebrow{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 22px/1.15 var(--f-body);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font:600 12px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0}
+.lede{margin:0;color:var(--muted);font-size:13px}
+.status{font:12px var(--f-mono);color:var(--muted);min-height:1.4em;overflow-wrap:anywhere}
+.status.bad{color:var(--bad)}
+.setup{display:grid;gap:8px;font-size:13px}
+.setup code{font:12px var(--f-mono);background:var(--bg);padding:1px 5px;border-radius:4px}
+.setup ol{margin:0;padding-left:18px;display:grid;gap:4px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.stat{display:grid;gap:1px}
+.stat b{font:600 20px/1.1 var(--f-body);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.pre b{color:var(--pre)} .stat.eoy b{color:var(--eoy)} .stat.sampled b{color:var(--sampled)} .stat.ctl b{color:var(--ctl)}
+.pop .kind.cpre{color:var(--pre)} .pop .kind.ceoy{color:var(--eoy)}
+.legend{display:grid;gap:6px}
+.legend label{display:grid;grid-template-columns:18px 22px minmax(0,1fr) auto;align-items:center;gap:8px;cursor:pointer;padding:3px 0;font-size:13px}
+.legend input{margin:0;width:15px;height:15px;accent-color:var(--accent)}
+.legend .count{font:12px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.sw{width:20px;height:14px;display:inline-block;position:relative}
+.sw.plot{border:1.5px solid var(--plot);background:color-mix(in srgb,var(--plot) 12%,transparent);border-radius:2px}
+.sw.sampled{border:2px solid var(--sampled);background:var(--sampled-soft);border-radius:2px}
+.sw.pre::before{content:"";position:absolute;left:4px;top:1px;width:12px;height:12px;border-radius:50%;background:var(--pre);border:1.5px solid #fff;box-shadow:0 0 0 .5px rgba(0,0,0,.3)}
+.sw.eoy::before{content:"";position:absolute;left:2px;top:-1px;width:16px;height:16px;border-radius:50%;border:2.5px solid var(--eoy)}
+.sw.cplot{border:2px solid var(--ctl);background:rgba(232,123,164,.16);border-radius:2px}
+.sw.cpre::before{content:"";position:absolute;left:5px;top:2px;width:10px;height:10px;background:var(--pre);border:1.5px solid #fff;box-shadow:0 0 0 .5px rgba(0,0,0,.3);transform:rotate(45deg)}
+.sw.ceoy::before{content:"";position:absolute;left:3px;top:0;width:12px;height:12px;border:2.5px solid var(--eoy);transform:rotate(45deg)}
+.field{display:grid;gap:4px}
+.field label{font-size:12px;color:var(--muted)}
+select,input[type=search],input[type=text]{width:100%;font:13px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:7px 9px;min-width:0}
+input[type=search]{font-family:var(--f-mono);font-size:12.5px}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--pre);outline-offset:1px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg{display:flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.seg button{flex:1;font:500 13px var(--f-body);color:var(--muted);background:transparent;border:0;padding:7px 0;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.showing{font:12px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.btn{font:500 12px var(--f-body);color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:6px;padding:5px 9px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.btn.icon{padding:3px 9px;font-size:17px;line-height:1.1}
+.btn.primary{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.foot{font-size:11.5px;color:var(--muted);display:grid;gap:3px}
+.foot code{font:11px var(--f-mono)}
+
+/* review list + stepper */
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.slist{list-style:none;margin:0;padding:4px;display:grid;gap:3px;max-height:38vh;overflow-y:auto;border:1px solid var(--rule-soft);border-radius:6px;background:var(--bg)}
+.slist:focus-visible{outline:2px solid var(--pre);outline-offset:1px}
+.slist li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 8px;border-radius:5px;cursor:pointer;border:1px solid transparent}
+.slist li:hover{background:var(--paper)}
+.slist li.cur{border-color:var(--accent);background:var(--paper)}
+.slist li.done .who{opacity:.55}
+.slist .who{display:grid;gap:1px;min-width:0}
+.slist .who b{font:500 12.5px var(--f-mono)}
+.slist .who .n{font:11px var(--f-mono);color:var(--muted);margin-left:6px;font-variant-numeric:tabular-nums}
+.slist .who .sub{color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slist li input{margin:0;width:15px;height:15px;accent-color:var(--sampled)}
+.slist .empty{color:var(--muted);font-size:12.5px;padding:10px;text-align:center}
+.stepper{position:absolute;left:12px;top:12px;z-index:4;display:flex;align-items:center;gap:8px;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:6px 8px;box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:min(600px,calc(100% - 24px))}
+.stepper .st-body{display:grid;gap:1px;min-width:0;flex:1}
+.stepper .st-pos{font:500 11px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.stepper .st-title{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper .st-rev{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;cursor:pointer}
+.stepper .st-rev input{margin:0;width:15px;height:15px;accent-color:var(--sampled)}
+.plots-hint{position:absolute;left:12px;top:64px;z-index:4;font:12px var(--f-mono);color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:5px 9px;box-shadow:0 2px 8px rgba(0,0,0,.2);max-width:calc(100% - 24px)}
+.plots-hint.bad{color:var(--bad)}
+
+/* map + Google info window */
+.mapwrap{position:relative;min-width:0}
+#map{position:absolute;inset:0;background:#0f1412}
+.map-msg{position:absolute;inset:0;display:grid;place-items:center;color:#c9d1cc;font-size:14px;padding:24px;text-align:center}
+.gm-style .gm-style-iw-c{background:var(--paper);color:var(--ink);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:12px 14px 12px 14px!important;max-width:320px!important}
+.gm-style .gm-style-iw-d{overflow:auto!important;color:var(--ink);max-height:60vh!important}
+.gm-style .gm-style-iw-tc::after{background:var(--paper)}
+.gm-style .gm-style-iw-chr{height:0}
+.gm-style .gm-style-iw-chr button{position:absolute;right:2px;top:2px;width:28px!important;height:28px!important}
+.gm-style .gm-style-iw-chr button span{background-color:var(--muted)!important}
+.pop{font:13px/1.45 var(--f-body);color:var(--ink)}
+.pop h3{margin:0 0 2px;font:600 14px var(--f-body);padding-right:22px}
+.pop .kind{font:500 10.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.pop .kind.pre{color:var(--pre)} .pop .kind.eoy{color:var(--eoy)} .pop .kind.plot{color:var(--muted)} .pop .kind.sampled{color:var(--sampled)} .pop .kind.ctl{color:var(--ctl)}
+.pop dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;margin:0;font-size:12.5px}
+.pop dt{color:var(--muted)} .pop dd{margin:0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.pop dd.mono{font:12px var(--f-mono)}
+.pop .links{display:flex;gap:10px;margin-top:9px;font-size:12px}
+.pop a{color:var(--pre)}
+.pop hr{border:0;border-top:1px solid var(--rule-soft);margin:8px 0}
+
+/* mobile: rail becomes a bottom sheet */
+.sheet-toggle{display:none}
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+  .rail{order:2;border-right:0;border-top:1px solid var(--rule);max-height:46vh}
+  .rail.collapsed{max-height:0;overflow:hidden;border-top:0}
+  .mapwrap{order:1}
+  .sheet-toggle{display:block;position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:5;font:500 13px var(--f-body);background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:999px;padding:7px 14px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .stepper .st-rev span,.stepper #st-next-rev{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<script>
+// ---------------------------------------------------------------------------
+// Fill these three values in. The anon key is safe to ship in a page (row level
+// security limits it to reading data and writing review ticks); the service
+// role key must never go here. Restrict the Google Maps key to this page's URL.
+// ---------------------------------------------------------------------------
+window.SEONI_CONFIG = {
+  SUPABASE_URL: 'https://dukeqyoxcrttzesivakq.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1a2VxeW94Y3J0dHplc2l2YWtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NDA0MjQsImV4cCI6MjEwMzIxNjQyNH0.QGQD7eWNr5Fjnl13hLkF_Jj5HprCyJLxnWx7zy78otA',
+  GOOGLE_MAPS_API_KEY: 'YOUR-GOOGLE-MAPS-API-KEY',
+};
+</script>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" id="rail">
+    <section>
+      <div class="eyebrow" id="eyebrow">Seoni, Madhya Pradesh</div>
+      <h1>Seoni sample plots</h1>
+      <p class="lede">Basalt deployment plots and control plots, each with their paired pre-deployment and end-of-year soil sample locations.</p>
+      <div class="status" id="status">Starting…</div>
+    </section>
+    <section id="setup" hidden></section>
+    <section id="sec-stats"><div class="stats" id="stats"></div></section>
+    <section id="sec-layers">
+      <h2>Layers</h2>
+      <div class="legend">
+        <label><input type="checkbox" id="ly-plots" checked><span class="sw plot"></span><span>Deployment plots</span><span class="count" id="n-plots"></span></label>
+        <label><input type="checkbox" id="ly-sampled" checked><span class="sw sampled"></span><span>Sampled treatment plots</span><span class="count" id="n-sampled"></span></label>
+        <label><input type="checkbox" id="ly-cplots" checked><span class="sw cplot"></span><span>Control plots</span><span class="count" id="n-cplots"></span></label>
+        <label><input type="checkbox" id="ly-pre" checked><span class="sw pre"></span><span>Pre samples (treatment)</span><span class="count" id="n-pre"></span></label>
+        <label><input type="checkbox" id="ly-eoy" checked><span class="sw eoy"></span><span>EOY samples (treatment)</span><span class="count" id="n-eoy"></span></label>
+        <label><input type="checkbox" id="ly-cpre" checked><span class="sw cpre"></span><span>Control pre samples</span><span class="count" id="n-cpre"></span></label>
+        <label><input type="checkbox" id="ly-ceoy" checked><span class="sw ceoy"></span><span>Control EOY samples</span><span class="count" id="n-ceoy"></span></label>
+      </div>
+      <p class="hint">Circles are treatment samples, diamonds are control samples; blue is pre-deployment, orange is end of year. Pre and EOY points sit within a metre or two of each other, so the EOY outline is drawn around the pre marker. Deployment plots load for the area in view once you zoom in; use the Map / Satellite switch on the map to change the basemap.</p>
+    </section>
+    <section id="sec-filter">
+      <h2>Filter</h2>
+      <div class="row">
+        <div class="field"><label for="f-village">Village</label><select id="f-village"><option value="">All villages</option></select></div>
+        <div class="field"><label for="f-crusher">Crusher</label><select id="f-crusher"><option value="">All crushers</option></select></div>
+      </div>
+      <div class="field"><label for="f-mode">Plots shown</label>
+        <select id="f-mode"><option value="all">All deployment plots</option><option value="sampled">Sampled plots only</option></select></div>
+      <div class="field"><label for="f-search">Find plot ID, control plot ID or sample code</label><input type="search" id="f-search" placeholder="10017059, 4850390 or YMFD8P" autocomplete="off" spellcheck="false"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span class="showing" id="showing"></span>
+        <button type="button" class="btn" id="reset">Reset view</button>
+      </div>
+    </section>
+    <section id="sec-samples">
+      <div class="sec-head"><h2>Samples</h2><span class="showing" id="rev-count"></span></div>
+      <div class="seg" role="group" aria-label="Which samples to list">
+        <button type="button" data-list="all" aria-pressed="true">All</button>
+        <button type="button" data-list="t" aria-pressed="false">Treatment</button>
+        <button type="button" data-list="c" aria-pressed="false">Control</button>
+      </div>
+      <div class="field"><label for="reviewer">Your name (saved with each tick)</label><input type="text" id="reviewer" placeholder="e.g. Dilip" autocomplete="off"></div>
+      <div class="field"><label for="list-filter">Filter the list</label><input type="search" id="list-filter" placeholder="ID, sample code, village or farmer" autocomplete="off" spellcheck="false"></div>
+      <ol class="slist" id="slist" tabindex="0" aria-label="Samples to review"></ol>
+      <p class="hint">Click a row to zoom to that sample, or use the stepper on the map. Arrow keys move through the list; Space ticks the current one. Ticks are stored in Supabase and shared with everyone who opens this page.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" id="rev-refresh">Refresh ticks</button></div>
+    </section>
+    <section class="foot" id="foot"></section>
+  </aside>
+  <div class="mapwrap">
+    <div id="map"></div>
+    <div class="map-msg" id="map-msg" hidden></div>
+    <div class="stepper" id="stepper" hidden>
+      <button type="button" class="btn icon" id="st-prev" aria-label="Previous sample">&#8249;</button>
+      <div class="st-body"><div class="st-pos" id="st-pos"></div><div class="st-title" id="st-title"></div></div>
+      <label class="st-rev"><input type="checkbox" id="st-rev"> <span>Reviewed</span></label>
+      <button type="button" class="btn primary" id="st-next-rev" title="Tick this sample and open the next one">Tick &amp; next</button>
+      <button type="button" class="btn icon" id="st-next" aria-label="Next sample">&#8250;</button>
+    </div>
+    <div class="plots-hint" id="plots-hint" hidden></div>
+    <button type="button" class="sheet-toggle" id="sheet-toggle">Hide panel</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const C = window.SEONI_CONFIG || {};
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n || 0).toLocaleString('en-IN');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const PRE = '#3987e5', EOY = '#d95926', SAMPLED = '#199e70', CTL = '#e87ba4';
+const MIN_PLOT_ZOOM = 13;       // deployment polygons load for the viewport from this zoom level on
+const normCrusher = s => String(s || '').split(',').map(x => x.trim().toUpperCase()).filter(Boolean).join(', ');
+const placeholder = v => !v || /^YOUR-/i.test(v) || /YOUR-PROJECT/.test(v);
+function setStatus(msg, bad){ const el = $('status'); el.textContent = msg; el.classList.toggle('bad', !!bad); }
+
+// ------------------------------------------------------------ Supabase REST (PostgREST), no client library needed
+const H = { apikey: C.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + C.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+async function api(path, opts = {}){
+  const r = await fetch(String(C.SUPABASE_URL || '').replace(/\/$/, '') + '/rest/v1/' + path, { ...opts, headers: { ...H, ...(opts.headers || {}) } });
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText} ${(await r.text()).slice(0, 160)}`.trim());
+  const t = await r.text(); return t ? JSON.parse(t) : null;
+}
+const rpc = (name, args = {}) => api('rpc/' + name, { method: 'POST', body: JSON.stringify(args) });
+async function fetchAll(path){   // PostgREST returns at most 1000 rows per request
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    const page = await api(path, { headers: { Range: `${from}-${from + 999}` } });
+    out.push(...page); if (page.length < 1000) return out;
+  }
+}
+
+// ------------------------------------------------------------ Google Maps loader
+function loadGoogleMaps(){
+  return new Promise((resolve, reject) => {
+    window.__seoniMapsReady = resolve;
+    window.gm_authFailure = () => { setStatus('Google Maps rejected the API key. Check the key, that the Maps JavaScript API is enabled, and the key\'s website restrictions.', true); };
+    const key = placeholder(C.GOOGLE_MAPS_API_KEY) ? '' : 'key=' + encodeURIComponent(C.GOOGLE_MAPS_API_KEY) + '&';
+    const s = document.createElement('script');
+    s.src = 'https://maps.googleapis.com/maps/api/js?' + key + 'v=weekly&loading=async&callback=__seoniMapsReady';
+    s.async = true; s.onerror = () => reject(new Error('the Google Maps script could not be loaded'));
+    document.head.appendChild(s);
+  });
+}
+
+// ------------------------------------------------------------ state + data
+const state = { village: '', crusher: '', mode: 'all', plots: true, sampled: true, cplots: true, pre: true, eoy: true, cpre: true, ceoy: true };
+let T, villages = [], crushers = [], samples = [], controls = [], sampledFC, controlPlotsFC, reviewed = {};
+const sampleByPlot = new Map(), controlById = new Map(), villageByName = new Map(), codeIndex = new Map();
+let map, plotsLayer, sampledLayer, controlPlotsLayer, pointsLayer, info;
+const loaded = new Set();   // plot ids currently in plotsLayer
+
+function showSetup(){
+  const el = $('setup'); el.hidden = false;
+  el.innerHTML = `<h2>Setup needed</h2><div class="setup"><p class="hint">Open this file and fill in <code>SEONI_CONFIG</code> at the top:</p><ol>
+    <li><code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> from Supabase → Project Settings → API.</li>
+    <li><code>GOOGLE_MAPS_API_KEY</code> from Google Cloud → APIs &amp; Services → Credentials, with the Maps JavaScript API enabled.</li>
+    <li>Run <code>supabase/schema.sql</code> once, then <code>supabase/load_data.py</code> with the four sheets.</li></ol></div>`;
+  ['sec-stats', 'sec-layers', 'sec-filter', 'sec-samples'].forEach(id => $(id).hidden = true);
+  const m = $('map-msg'); m.hidden = false; m.textContent = 'The map appears once Supabase and Google Maps are configured.';
+}
+
+async function init(){
+  if (placeholder(C.SUPABASE_URL) || placeholder(C.SUPABASE_ANON_KEY)) { setStatus('Not configured', true); showSetup(); return; }
+  setStatus('Loading from Supabase…');
+  const mapsReady = loadGoogleMaps();
+  try {
+    [T, villages, crushers, samples, controls, sampledFC, controlPlotsFC] = await Promise.all([
+      rpc('seoni_totals'), rpc('seoni_village_stats'), rpc('seoni_crusher_stats'),
+      fetchAll('seoni_treatment_samples?select=*&order=village_name,plot_id'),
+      fetchAll('seoni_control_samples?select=*&order=village_name,control_plot_id'),
+      rpc('seoni_sampled_plots_geojson'), rpc('seoni_control_plots_geojson')]);
+    await loadReviews();
+  } catch (e) { setStatus('Could not load from Supabase: ' + e.message, true); return; }
+  samples.forEach(s => { sampleByPlot.set(s.plot_id, s); codeIndex.set(s.pre_code.toUpperCase(), { kind: 'pre', id: s.plot_id }); codeIndex.set(s.eoy_code.toUpperCase(), { kind: 'eoy', id: s.plot_id }); });
+  controls.forEach(c => { controlById.set(c.control_plot_id, c); codeIndex.set(c.pre_code.toUpperCase(), { kind: 'cpre', id: c.control_plot_id }); codeIndex.set(c.eoy_code.toUpperCase(), { kind: 'ceoy', id: c.control_plot_id }); });
+  villages.forEach(v => villageByName.set(v.name, v));
+  fillRail(); buildItems(); renderList();
+  setStatus(`Loaded ${fmt(T.plots)} plots, ${fmt(samples.length)} treatment pairs, ${fmt(T.control_plots)} control plots, ${fmt(controls.length)} control pairs · waiting for Google Maps…`);
+  try { await mapsReady; } catch (e) { setStatus('Google Maps did not load: ' + e.message, true); return; }
+  buildMap();
+  $('stepper').hidden = false;
+  setStatus(`Connected to ${new URL(C.SUPABASE_URL).host}` + (placeholder(C.GOOGLE_MAPS_API_KEY) ? ' · no Google Maps key set (development watermark)' : ''), placeholder(C.GOOGLE_MAPS_API_KEY));
+}
+
+function fillRail(){
+  $('eyebrow').textContent = `${(T.deployment_ids || []).join(', ')} · Seoni, Madhya Pradesh`;
+  $('stats').innerHTML = `
+    <div class="stat"><b>${fmt(T.plots)}</b><span>deployment plots</span></div>
+    <div class="stat"><b>${fmt(Math.round(T.area_ha))} ha</b><span>${fmt(Math.round(T.tonnage))} t basalt</span></div>
+    <div class="stat sampled"><b>${fmt(T.sampled_plots)}</b><span>sampled plots</span></div>
+    <div class="stat"><b>${fmt(T.villages)}</b><span>villages</span></div>
+    <div class="stat pre"><b>${fmt(samples.length)}</b><span>pre samples</span></div>
+    <div class="stat eoy"><b>${fmt(samples.length)}</b><span>EOY samples</span></div>
+    <div class="stat ctl"><b>${fmt(T.control_plots)}</b><span>control plots · ${fmt(T.control_area_ha)} ha</span></div>
+    <div class="stat ctl"><b>${fmt(controls.length)}</b><span>control sample pairs</span></div>`;
+  const vSel = $('f-village'), cSel = $('f-crusher');
+  villages.forEach(v => { const o = document.createElement('option'); o.value = v.name; o.textContent = `${v.name} (${v.plots} · ${v.sampled} sampled · ${v.controls} control)`; vSel.appendChild(o); });
+  crushers.forEach(c => { const o = document.createElement('option'); o.value = c.crusher; o.textContent = `${c.crusher} (${fmt(c.plots)})`; cSel.appendChild(o); });
+  $('foot').innerHTML = `<div>Data: Supabase project <code>${esc(new URL(C.SUPABASE_URL).host)}</code> · tables seoni_deployments, seoni_treatment_samples, seoni_control_plots, seoni_control_samples, seoni_sample_reviews.</div><div>Status for all sampled plots: ${esc(samples[0] ? samples[0].status : '')}. Map imagery © Google.</div>`;
+  try { $('reviewer').value = localStorage.getItem('seoni-reviewer') || ''; } catch (e) {}
+  $('reviewer').addEventListener('input', e => { try { localStorage.setItem('seoni-reviewer', e.target.value); } catch (x) {} });
+  updateCounts();
+}
+
+// ------------------------------------------------------------ map
+const inScope = (village, crusher, isControl) =>
+  (state.village === '' || village === state.village) && (isControl || state.crusher === '' || normCrusher(crusher) === state.crusher);
+function plotStyle(f){
+  const sat = map.getMapTypeId() !== 'roadmap', c = sat ? '#ffffff' : '#1c211e';
+  return { visible: state.plots && state.mode === 'all' && inScope(f.getProperty('village'), f.getProperty('crusher')),
+           fillColor: c, fillOpacity: sat ? 0.08 : 0.05, strokeColor: c, strokeOpacity: sat ? 0.8 : 0.7, strokeWeight: 1, zIndex: 1 };
+}
+function sampledStyle(f){
+  return { visible: state.sampled && inScope(f.getProperty('village'), f.getProperty('crusher')),
+           fillColor: SAMPLED, fillOpacity: 0.22, strokeColor: SAMPLED, strokeOpacity: 1, strokeWeight: 2, zIndex: 2 };
+}
+function controlPlotStyle(f){
+  return { visible: state.cplots && inScope(f.getProperty('village'), '', true),
+           fillColor: CTL, fillOpacity: 0.2, strokeColor: CTL, strokeOpacity: 1, strokeWeight: 2, zIndex: 2 };
+}
+const DIAMOND = 'M 0 -1 L 1 0 L 0 1 L -1 0 Z';
+function pointStyle(f){
+  const k = f.getProperty('kind'), control = k === 'cpre' || k === 'ceoy';
+  const visible = state[k] && inScope(f.getProperty('village'), f.getProperty('crusher'), control);
+  if (k === 'pre')  return { visible, zIndex: 30, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 5.5, fillColor: PRE, fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 1.5 } };
+  if (k === 'eoy')  return { visible, zIndex: 20, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8.5, fillColor: '#000000', fillOpacity: 0, strokeColor: EOY, strokeWeight: 2.5 } };
+  if (k === 'cpre') return { visible, zIndex: 30, icon: { path: DIAMOND, scale: 7, fillColor: PRE, fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 1.5 } };
+  return                   { visible, zIndex: 20, icon: { path: DIAMOND, scale: 11, fillColor: '#000000', fillOpacity: 0, strokeColor: EOY, strokeWeight: 2.5 } };
+}
+function pointFeatures(){
+  const out = [];
+  samples.forEach(s => {
+    const base = { id: s.plot_id, village: s.village_name, crusher: s.crusher_code };
+    out.push({ type: 'Feature', properties: { ...base, kind: 'eoy', key: 'eoy:' + s.plot_id }, geometry: { type: 'Point', coordinates: [s.eoy_lon, s.eoy_lat] } });
+    out.push({ type: 'Feature', properties: { ...base, kind: 'pre', key: 'pre:' + s.plot_id }, geometry: { type: 'Point', coordinates: [s.pre_lon, s.pre_lat] } });
+  });
+  controls.forEach(c => {
+    const base = { id: c.control_plot_id, village: c.village_name, crusher: '' };
+    out.push({ type: 'Feature', properties: { ...base, kind: 'ceoy', key: 'ceoy:' + c.control_plot_id }, geometry: { type: 'Point', coordinates: [c.eoy_lon, c.eoy_lat] } });
+    out.push({ type: 'Feature', properties: { ...base, kind: 'cpre', key: 'cpre:' + c.control_plot_id }, geometry: { type: 'Point', coordinates: [c.pre_lon, c.pre_lat] } });
+  });
+  return out;
+}
+function bboxBounds(b){ return new google.maps.LatLngBounds({ lat: b[1], lng: b[0] }, { lat: b[3], lng: b[2] }); }
+function closeRings(fc){   // Google's data layer rejects a polygon ring whose last point is not its first
+  const fix = g => { if (g && g.type === 'Polygon') g.coordinates.forEach(r => { if (r.length && (r[0][0] !== r[r.length - 1][0] || r[0][1] !== r[r.length - 1][1])) r.push(r[0]); }); };
+  if (fc && fc.type === 'FeatureCollection') fc.features.forEach(f => fix(f.geometry)); else if (fc && fc.type === 'Feature') fix(fc.geometry);
+  return fc;
+}
+
+function buildMap(){
+  map = new google.maps.Map($('map'), {
+    mapTypeId: 'hybrid', center: { lat: 22.06, lng: 79.87 }, zoom: 11, maxZoom: 21, tilt: 0,
+    mapTypeControl: true, mapTypeControlOptions: { style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR, position: google.maps.ControlPosition.BOTTOM_CENTER, mapTypeIds: ['hybrid', 'roadmap'] },
+    streetViewControl: false, fullscreenControl: false, rotateControl: false, gestureHandling: 'greedy', clickableIcons: false,
+  });
+  if (T.bbox) map.fitBounds(bboxBounds(T.bbox), 24);
+  plotsLayer = new google.maps.Data({ map });
+  sampledLayer = new google.maps.Data({ map });
+  controlPlotsLayer = new google.maps.Data({ map });
+  pointsLayer = new google.maps.Data({ map });
+  sampledLayer.addGeoJson(closeRings(sampledFC), { idPropertyName: 'id' });
+  controlPlotsLayer.addGeoJson(closeRings(controlPlotsFC), { idPropertyName: 'id' });
+  pointsLayer.addGeoJson({ type: 'FeatureCollection', features: pointFeatures() }, { idPropertyName: 'key' });
+  plotsLayer.setStyle(plotStyle); sampledLayer.setStyle(sampledStyle); controlPlotsLayer.setStyle(controlPlotStyle); pointsLayer.setStyle(pointStyle);
+  info = new google.maps.InfoWindow({ maxWidth: 320 });
+
+  [plotsLayer, sampledLayer].forEach(L => {
+    L.addListener('click', e => { const pid = e.feature.getProperty('id'); openPlotInfo(e.feature, e.latLng, null); if (sampleByPlot.has(pid)) setCurrent('t:' + pid, false); });
+    L.addListener('mouseover', e => L.overrideStyle(e.feature, { strokeWeight: 3, fillOpacity: 0.4 }));
+    L.addListener('mouseout', e => L.revertStyle(e.feature));
+  });
+  controlPlotsLayer.addListener('click', e => { const id = e.feature.getProperty('id'); openControlInfo(id, null); if (controlById.has(id)) setCurrent('c:' + id, false); });
+  controlPlotsLayer.addListener('mouseover', e => controlPlotsLayer.overrideStyle(e.feature, { strokeWeight: 3, fillOpacity: 0.4 }));
+  controlPlotsLayer.addListener('mouseout', e => controlPlotsLayer.revertStyle(e.feature));
+  pointsLayer.addListener('click', e => {
+    const f = e.feature, kind = f.getProperty('kind'), id = f.getProperty('id');
+    if (kind === 'cpre' || kind === 'ceoy') { openControlInfo(id, kind); setCurrent('c:' + id, false); }
+    else { openSampleInfo(sampleByPlot.get(id), kind); setCurrent('t:' + id, false); }
+  });
+  pointsLayer.addListener('mouseover', e => { const st = pointStyle(e.feature); pointsLayer.overrideStyle(e.feature, { icon: { ...st.icon, scale: st.icon.scale * 1.35, strokeWeight: st.icon.strokeWeight + 1 } }); });
+  pointsLayer.addListener('mouseout', e => pointsLayer.revertStyle(e.feature));
+  map.addListener('idle', onIdle);
+  map.addListener('maptypeid_changed', () => plotsLayer.setStyle(plotStyle));
+}
+
+// deployment polygons for the area in view
+let loadSeq = 0;
+async function onIdle(){
+  const z = map.getZoom();
+  if (z < MIN_PLOT_ZOOM) { setPlotsHint(`Zoom in to level ${MIN_PLOT_ZOOM} to load deployment plots (now ${Math.round(z)}) · ${fmt(loaded.size)} loaded`); return; }
+  const b = map.getBounds(); if (!b) return;
+  const sw = b.getSouthWest(), ne = b.getNorthEast(), seq = ++loadSeq;
+  setPlotsHint('Loading deployment plots…');
+  try {
+    const fc = await rpc('seoni_deployments_in_bbox', { min_lon: sw.lng(), min_lat: sw.lat(), max_lon: ne.lng(), max_lat: ne.lat(), max_rows: 6000 });
+    if (seq !== loadSeq) return;
+    const fresh = fc.features.filter(f => !loaded.has(f.id));
+    if (fresh.length) { plotsLayer.addGeoJson(closeRings({ type: 'FeatureCollection', features: fresh }), { idPropertyName: 'id' }); fresh.forEach(f => loaded.add(f.id)); }
+    if (loaded.size > 20000) trimPlots(b);
+    setPlotsHint(`${fmt(fc.features.length)} deployment plots in view${fc.truncated ? ' (zoom in to see all)' : ''} · ${fmt(loaded.size)} loaded`);
+  } catch (e) { if (seq === loadSeq) setPlotsHint('Could not load plots: ' + e.message, true); }
+}
+function trimPlots(b){   // drop polygons far outside the view so memory stays bounded
+  const ne = b.getNorthEast(), sw = b.getSouthWest(), dLat = ne.lat() - sw.lat(), dLng = ne.lng() - sw.lng();
+  const keep = new google.maps.LatLngBounds({ lat: sw.lat() - dLat, lng: sw.lng() - dLng }, { lat: ne.lat() + dLat, lng: ne.lng() + dLng });
+  const drop = [];
+  plotsLayer.forEach(f => { let inside = false; f.getGeometry().forEachLatLng(ll => { if (keep.contains(ll)) inside = true; }); if (!inside) drop.push(f); });
+  drop.forEach(f => { plotsLayer.remove(f); loaded.delete(f.getProperty('id')); });
+}
+function setPlotsHint(msg, bad){ const el = $('plots-hint'); el.hidden = false; el.textContent = msg; el.classList.toggle('bad', !!bad); }
+
+// ------------------------------------------------------------ info windows
+const gmapsLink = (lat, lng) => `<div class="links"><a href="https://www.google.com/maps/search/?api=1&query=${lat.toFixed(6)},${lng.toFixed(6)}" target="_blank" rel="noopener">Open in Google Maps</a></div>`;
+function revRow(key){ const r = reviewed[key]; return `<dt>Reviewed</dt><dd>${r ? `yes${r.reviewer ? ' · ' + esc(r.reviewer) : ''} · ${new Date(r.reviewed_at).toLocaleDateString()}` : 'not yet'}</dd>`; }
+function sampleRows(s){
+  return `<dt>Farmer</dt><dd>${esc(s.farmer_name)}</dd>
+    <dt>Pre sample</dt><dd class="mono" style="color:${PRE}">${esc(s.pre_code)}</dd>
+    <dt>Pre location</dt><dd class="mono">${s.pre_lat.toFixed(6)}, ${s.pre_lon.toFixed(6)}</dd>
+    <dt>EOY sample</dt><dd class="mono" style="color:${EOY}">${esc(s.eoy_code)}</dd>
+    <dt>EOY location</dt><dd class="mono">${s.eoy_lat.toFixed(6)}, ${s.eoy_lon.toFixed(6)}</dd>
+    <dt>Status</dt><dd>${esc(s.status)}</dd>${revRow('t:' + s.plot_id)}`;
+}
+function plotHtml(p, focusKind, at){
+  const s = sampleByPlot.get(p.id);
+  const kind = focusKind ? `${focusKind === 'pre' ? 'Pre-deployment' : 'End-of-year'} sample · sampled plot` : (s ? 'Sampled plot' : 'Deployment plot');
+  return `<div class="pop"><div class="kind ${focusKind || (s ? 'sampled' : 'plot')}">${kind}</div>
+    <h3>Plot ${p.id} · ${esc(p.village)}</h3>
+    <dl><dt>Crusher</dt><dd>${esc(p.crusher)}</dd>
+    <dt>Area</dt><dd>${p.area_ha ?? '–'} ha</dd>
+    <dt>Basalt</dt><dd>${p.tonnage ?? '–'} t</dd>
+    <dt>Deployments</dt><dd class="mono">${esc(p.deployment_ids)}${p.n_deployments > 1 ? ` (${p.n_deployments})` : ''}</dd>
+    <dt>Farmer ID</dt><dd class="mono">${esc(p.farmer_id)}</dd>
+    ${s ? '</dl><hr><dl>' + sampleRows(s) : ''}</dl>${gmapsLink(at.lat, at.lng)}</div>`;
+}
+function controlSampleRows(c){
+  return `<dt>Farmer</dt><dd>${esc(c.farmer_name)}</dd>
+    <dt>Pre sample</dt><dd class="mono" style="color:${PRE}">${esc(c.pre_code)}</dd>
+    <dt>Pre location</dt><dd class="mono">${c.pre_lat.toFixed(6)}, ${c.pre_lon.toFixed(6)}</dd>
+    <dt>EOY sample</dt><dd class="mono" style="color:${EOY}">${esc(c.eoy_code)}</dd>
+    <dt>EOY location</dt><dd class="mono">${c.eoy_lat.toFixed(6)}, ${c.eoy_lon.toFixed(6)}</dd>${revRow('c:' + c.control_plot_id)}`;
+}
+function controlHtml(id, kind, at){
+  const f = controlPlotsLayer.getFeatureById(id), p = f ? props(f) : null, c = controlById.get(id);
+  const village = (p && p.village) || (c && c.village_name) || '';
+  const head = kind ? `Control ${kind === 'cpre' ? 'pre-deployment' : 'end-of-year'} sample · control plot` : (c ? 'Control plot · sampled' : 'Control plot');
+  return `<div class="pop"><div class="kind ${kind || 'ctl'}">${head}</div>
+    <h3>Control plot ${id} · ${esc(village)}</h3>
+    <dl>${p ? `<dt>Control area</dt><dd>${p.control_area_ha ?? '–'} ha${p.calculated_area_ha != null ? ` (calculated ${p.calculated_area_ha} ha)` : ''}</dd>
+    <dt>Farmer ID</dt><dd class="mono">${esc(p.farmer_id)}</dd>
+    <dt>Surveyor</dt><dd>${esc(p.surveyor)}</dd>
+    <dt>Season</dt><dd>${esc(p.season)} ${esc(p.year)}${p.terrain === false ? ' · terrain flag off' : ''}</dd>` : '<dt>Polygon</dt><dd>none in the control plot sheet</dd>'}
+    ${c ? '</dl><hr><dl>' + controlSampleRows(c) : ''}</dl>${gmapsLink(at.lat, at.lng)}</div>`;
+}
+const props = f => { const o = {}; f.forEachProperty((v, k) => { o[k] = v; }); return o; };
+const toLL = p => (typeof p.lat === 'function') ? { lat: p.lat(), lng: p.lng() } : p;
+function openInfo(html, pos){ info.setContent(html); info.setPosition(pos); info.open({ map, shouldFocus: false }); }
+function openPlotInfo(f, pos, kind){ const at = toLL(pos); openInfo(plotHtml(props(f), kind, at), at); }
+function openSampleInfo(s, kind){
+  const f = sampledLayer.getFeatureById(s.plot_id);
+  const p = f ? props(f) : { id: s.plot_id, village: s.village_name, crusher: s.crusher_code, deployment_ids: s.deployment_ids, n_deployments: s.n_deployments, farmer_id: s.farmer_id };
+  const at = kind === 'eoy' ? { lat: s.eoy_lat, lng: s.eoy_lon } : { lat: s.pre_lat, lng: s.pre_lon };
+  openInfo(plotHtml(p, kind, at), at);
+}
+function controlAnchor(id, kind){
+  const c = controlById.get(id);
+  if (c) return kind === 'ceoy' ? { lat: c.eoy_lat, lng: c.eoy_lon } : { lat: c.pre_lat, lng: c.pre_lon };
+  const f = controlPlotsLayer.getFeatureById(id); const b = new google.maps.LatLngBounds(); f.getGeometry().forEachLatLng(ll => b.extend(ll));
+  return toLL(b.getCenter());
+}
+function openControlInfo(id, kind){ const at = controlAnchor(id, kind); openInfo(controlHtml(id, kind, at), at); }
+
+// ------------------------------------------------------------ go to
+function afterMove(fn){ let done = false; const run = () => { if (done) return; done = true; fn(); }; google.maps.event.addListenerOnce(map, 'idle', run); setTimeout(run, 900); }
+async function goToPlot(pid, kind){
+  let f = sampledLayer.getFeatureById(pid) || plotsLayer.getFeatureById(pid);
+  if (!f) {
+    try { const gj = await rpc('seoni_plot_geojson', { p_plot_id: pid }); if (!gj) return false; f = plotsLayer.addGeoJson(closeRings(gj), { idPropertyName: 'id' })[0]; loaded.add(pid); }
+    catch (e) { setStatus('Lookup failed: ' + e.message, true); return false; }
+  }
+  const b = new google.maps.LatLngBounds(); f.getGeometry().forEachLatLng(ll => b.extend(ll));
+  const s = sampleByPlot.get(pid);
+  if (s) { b.extend({ lat: s.pre_lat, lng: s.pre_lon }); b.extend({ lat: s.eoy_lat, lng: s.eoy_lon }); }
+  map.fitBounds(b, 80);
+  afterMove(() => { if (map.getZoom() > 18) map.setZoom(18); if (s) openSampleInfo(s, kind || 'pre'); else openPlotInfo(f, b.getCenter(), null); });
+  return true;
+}
+function goToControl(id, kind){
+  const c = controlById.get(id), f = controlPlotsLayer.getFeatureById(id);
+  if (!c && !f) return false;
+  const b = new google.maps.LatLngBounds();
+  if (f) f.getGeometry().forEachLatLng(ll => b.extend(ll));
+  if (c) { b.extend({ lat: c.pre_lat, lng: c.pre_lon }); b.extend({ lat: c.eoy_lat, lng: c.eoy_lon }); }
+  map.fitBounds(b, 80);
+  afterMove(() => { if (map.getZoom() > 18) map.setZoom(18); openControlInfo(id, kind || (c ? 'cpre' : null)); });
+  return true;
+}
+function fitScope(){
+  const v = state.village ? villageByName.get(state.village) : null;
+  if (v && v.bbox) map.fitBounds(bboxBounds(v.bbox), 40); else if (T.bbox) map.fitBounds(bboxBounds(T.bbox), 24);
+}
+
+// ------------------------------------------------------------ filters + counts
+function restyle(){ if (map) { plotsLayer.setStyle(plotStyle); sampledLayer.setStyle(sampledStyle); controlPlotsLayer.setStyle(controlPlotStyle); pointsLayer.setStyle(pointStyle); } updateCounts(); renderList(); }
+function updateCounts(){
+  const v = state.village ? villageByName.get(state.village) : null;
+  const cr = state.crusher ? crushers.find(c => c.crusher === state.crusher) : null;
+  const nS = samples.filter(s => inScope(s.village_name, s.crusher_code)).length;
+  const nC = controls.filter(c => inScope(c.village_name, '', true)).length;
+  const nPlots = (v && cr) ? null : v ? v.plots : cr ? cr.plots : T.plots;
+  const nCP = v ? (v.control_plots || 0) : T.control_plots;
+  $('n-plots').textContent = nPlots === null ? '–' : fmt(nPlots - nS);
+  $('n-sampled').textContent = fmt(nS); $('n-pre').textContent = fmt(nS); $('n-eoy').textContent = fmt(nS);
+  $('n-cplots').textContent = fmt(nCP); $('n-cpre').textContent = fmt(nC); $('n-ceoy').textContent = fmt(nC);
+  $('showing').textContent = `${nPlots === null ? '–' : fmt(nPlots)} plots · ${fmt(nS)} sampled · ${fmt(nCP)} control plots`;
+}
+['plots', 'sampled', 'cplots', 'pre', 'eoy', 'cpre', 'ceoy'].forEach(k => $('ly-' + k).addEventListener('change', e => { state[k] = e.target.checked; restyle(); }));
+$('f-village').addEventListener('change', e => { state.village = e.target.value; restyle(); if (map) fitScope(); });
+$('f-crusher').addEventListener('change', e => { state.crusher = e.target.value; restyle(); });
+$('f-mode').addEventListener('change', e => { state.mode = e.target.value; restyle(); });
+$('reset').addEventListener('click', () => {
+  state.village = ''; state.crusher = ''; state.mode = 'all'; $('f-village').value = ''; $('f-crusher').value = ''; $('f-mode').value = 'all'; $('f-search').value = '';
+  ['plots', 'sampled', 'cplots', 'pre', 'eoy', 'cpre', 'ceoy'].forEach(k => { state[k] = true; $('ly-' + k).checked = true; });
+  restyle(); if (info) info.close(); if (map && T.bbox) map.fitBounds(bboxBounds(T.bbox), 24);
+});
+const search = $('f-search');
+search.addEventListener('keydown', async e => {
+  if (e.key !== 'Enter' || !map) return;
+  const q = search.value.trim().toUpperCase(); if (!q) return;
+  const code = codeIndex.get(q);
+  let ok = false;
+  if (code) ok = (code.kind === 'cpre' || code.kind === 'ceoy') ? goToControl(code.id, code.kind) : await goToPlot(code.id, code.kind);
+  else if (controlById.has(Number(q)) || controlPlotsLayer.getFeatureById(Number(q))) ok = goToControl(Number(q));
+  else if (/^\d+$/.test(q)) ok = await goToPlot(Number(q));
+  if (!ok) { search.setCustomValidity('No plot, control plot or sample with that ID'); search.reportValidity(); setTimeout(() => search.setCustomValidity(''), 1500); }
+});
+search.addEventListener('input', () => search.setCustomValidity(''));
+
+// ------------------------------------------------------------ review list: every sample, one by one (ticks live in Supabase)
+let items = [], byKey = new Map(), visible = [], curKey = null, listMode = 'all', listQuery = '';
+const listEl = $('slist');
+function buildItems(){
+  items = [];
+  samples.forEach(s => items.push({ key: 't:' + s.plot_id, kind: 't', id: s.plot_id, village: s.village_name, codes: [s.pre_code, s.eoy_code], farmer: s.farmer_name || '' }));
+  controls.forEach(c => items.push({ key: 'c:' + c.control_plot_id, kind: 'c', id: c.control_plot_id, village: c.village_name, codes: [c.pre_code, c.eoy_code], farmer: c.farmer_name || '' }));
+  items.sort((a, b) => a.village.localeCompare(b.village) || (a.kind === b.kind ? 0 : a.kind === 't' ? -1 : 1) || a.id - b.id);
+  byKey = new Map(items.map(it => [it.key, it]));
+}
+async function loadReviews(){ const rows = await fetchAll('seoni_sample_reviews?select=*'); reviewed = {}; rows.forEach(r => { reviewed[r.sample_key] = r; }); }
+const label = it => `${it.kind === 't' ? 'plot' : 'control'} ${it.id}`;
+function renderList(){
+  const q = listQuery.trim().toLowerCase();
+  visible = items.filter(it => (listMode === 'all' || it.kind === listMode)
+    && (state.village === '' || it.village === state.village)
+    && (!q || String(it.id).includes(q) || it.village.toLowerCase().includes(q) || it.farmer.toLowerCase().includes(q) || it.codes.some(c => c.toLowerCase().includes(q))));
+  if (curKey && !visible.some(it => it.key === curKey)) curKey = null;
+  listEl.innerHTML = visible.length ? visible.map((it, n) => `<li data-key="${it.key}" class="${it.key === curKey ? 'cur' : ''}${reviewed[it.key] ? ' done' : ''}" title="${reviewed[it.key] ? esc('ticked' + (reviewed[it.key].reviewer ? ' by ' + reviewed[it.key].reviewer : '') + ' on ' + new Date(reviewed[it.key].reviewed_at).toLocaleString()) : ''}">
+    <span class="sw ${it.kind === 't' ? 'pre' : 'cpre'}"></span>
+    <div class="who"><div><b>${it.kind === 't' ? 'Plot' : 'Control'} ${it.id}</b><span class="n">${n + 1}</span></div><span class="sub">${esc(it.village)} · ${it.codes.map(esc).join(' / ')} · ${esc(it.farmer)}</span></div>
+    <input type="checkbox" aria-label="Reviewed" ${reviewed[it.key] ? 'checked' : ''}></li>`).join('')
+    : '<li class="empty">No samples match the current filters</li>';
+  updateStepper();
+}
+function paintRow(key){ const row = listEl.querySelector(`li[data-key="${key}"]`); if (!row) return; const on = !!reviewed[key]; row.classList.toggle('done', on); row.querySelector('input').checked = on; }
+function updateStepper(){
+  const n = visible.findIndex(it => it.key === curKey), it = n >= 0 ? visible[n] : null;
+  $('st-pos').textContent = `${n >= 0 ? n + 1 : '–'} / ${visible.length}`;
+  $('st-title').textContent = it ? `${it.kind === 't' ? 'Plot' : 'Control'} ${it.id} · ${it.village} · ${it.codes.join(' / ')}`
+    : (visible.length ? 'Pick a sample from the list or press › to start' : 'No samples match the current filters');
+  $('st-rev').checked = !!(it && reviewed[it.key]); $('st-rev').disabled = !it; $('st-next-rev').disabled = !it;
+  $('st-prev').disabled = n <= 0; $('st-next').disabled = !visible.length || n >= visible.length - 1;
+  $('rev-count').textContent = `${fmt(items.filter(x => reviewed[x.key]).length)} of ${fmt(items.length)} ticked`;
+}
+function setCurrent(key, zoom){
+  curKey = key;
+  listEl.querySelectorAll('li.cur').forEach(el => el.classList.remove('cur'));
+  const row = listEl.querySelector(`li[data-key="${key}"]`);
+  if (row) { row.classList.add('cur'); row.scrollIntoView({ block: 'nearest' }); }
+  updateStepper();
+  const it = byKey.get(key);
+  if (zoom && it && map) { if (it.kind === 't') goToPlot(it.id, 'pre'); else goToControl(it.id, 'cpre'); }
+}
+function step(d){
+  if (!visible.length) return;
+  const n = visible.findIndex(it => it.key === curKey);
+  setCurrent(visible[Math.min(visible.length - 1, Math.max(0, n < 0 ? 0 : n + d))].key, true);
+}
+async function setReviewed(key, on){
+  const it = byKey.get(key); if (!it) return;
+  const prev = reviewed[key];
+  if (on) reviewed[key] = { sample_key: key, kind: it.kind === 't' ? 'treatment' : 'control', ref_id: it.id, reviewer: $('reviewer').value.trim() || null, reviewed_at: new Date().toISOString() };
+  else delete reviewed[key];
+  paintRow(key); updateStepper();
+  try {
+    if (on) await api('seoni_sample_reviews', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([reviewed[key]]) });
+    else await api('seoni_sample_reviews?sample_key=eq.' + encodeURIComponent(key), { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+    setStatus(`${on ? 'Ticked' : 'Unticked'} ${label(it)} · saved to Supabase`);
+  } catch (e) {
+    if (prev) reviewed[key] = prev; else delete reviewed[key];
+    paintRow(key); updateStepper(); setStatus('Could not save the tick: ' + e.message, true);
+  }
+}
+listEl.addEventListener('click', e => {
+  const row = e.target.closest('li[data-key]'); if (!row) return;
+  if (e.target.matches('input')) { setReviewed(row.dataset.key, e.target.checked); return; }
+  setCurrent(row.dataset.key, true);
+});
+listEl.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); step(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); step(-1); }
+  else if (e.key === ' ' && curKey && !e.target.matches('input')) { e.preventDefault(); setReviewed(curKey, !reviewed[curKey]); }
+});
+document.querySelectorAll('[data-list]').forEach(b => b.addEventListener('click', () => {
+  listMode = b.dataset.list; document.querySelectorAll('[data-list]').forEach(x => x.setAttribute('aria-pressed', x === b)); renderList(); }));
+$('list-filter').addEventListener('input', e => { listQuery = e.target.value; renderList(); });
+$('st-prev').addEventListener('click', () => step(-1));
+$('st-next').addEventListener('click', () => step(1));
+$('st-rev').addEventListener('change', e => { if (curKey) setReviewed(curKey, e.target.checked); });
+$('st-next-rev').addEventListener('click', () => { if (!curKey) return; setReviewed(curKey, true); step(1); });
+async function refreshTicks(){ try { await loadReviews(); renderList(); setStatus('Ticks refreshed from Supabase'); } catch (e) { setStatus('Could not refresh ticks: ' + e.message, true); } }
+$('rev-refresh').addEventListener('click', refreshTicks);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && T) refreshTicks(); });
+
+// mobile sheet
+const rail = $('rail'), tog = $('sheet-toggle');
+tog.addEventListener('click', () => { const c = rail.classList.toggle('collapsed'); tog.textContent = c ? 'Show panel' : 'Hide panel'; if (map) setTimeout(() => google.maps.event.trigger(map, 'resize'), 250); });
+
+init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# local scratch and secrets
+.DS_Store
+__pycache__/
+*.pyc
+.env
+.env.*
+# dry-run output of supabase/load_data.py
+supabase/dryrun/
