@@ -9,6 +9,7 @@
 Reads .env next to this folder's parent (the repo root); see .env.example for the keys.
 """
 import json, os, re, shutil, subprocess, sys, tempfile
+from urllib.parse import quote
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -36,10 +37,14 @@ def read_env():
             k, v = line.split('=', 1)
             v = v.strip().strip('"').strip("'")
             env[k.strip()] = v
-    for k in ('SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_DB_URL', 'SUPABASE_ACCESS_TOKEN', 'SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_MAPS_API_KEY', 'SEONI_SHEETS_DIR'):
+    for k in ('SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_DB_URL', 'SUPABASE_DB_PASSWORD', 'SUPABASE_DB_HOST', 'SUPABASE_ACCESS_TOKEN', 'SUPABASE_SERVICE_ROLE_KEY', 'GOOGLE_MAPS_API_KEY', 'SEONI_SHEETS_DIR'):
         if os.environ.get(k):
             env[k] = os.environ[k]
     env.setdefault('SEONI_SHEETS_DIR', '~/Downloads')
+    # the database password alone is enough: user, host and database are known from the project
+    if not usable(env.get('SUPABASE_DB_URL')) and usable(env.get('SUPABASE_DB_PASSWORD')) and project_ref(env.get('SUPABASE_URL')):
+        host = env.get('SUPABASE_DB_HOST') or f'aws-0-ap-south-1.pooler.supabase.com'
+        env['SUPABASE_DB_URL'] = f"postgresql://postgres.{project_ref(env['SUPABASE_URL'])}:{quote(env['SUPABASE_DB_PASSWORD'], safe='')}@{host}:5432/postgres"
     return path, env
 
 
@@ -47,16 +52,16 @@ def usable(v):
     return bool(v) and '[YOUR-' not in v and 'YOUR-' not in v
 
 
+def project_ref(url):
+    m = re.match(r'https://([a-z0-9]+)\.supabase\.co', url or '')
+    return m.group(1) if m else None
+
+
 def curl(args, data=None):
     cmd = ['curl', '-sS', '-o', '-', '-w', '\n%{http_code}'] + args
     out = subprocess.run(cmd, input=data, capture_output=True, text=True)
     body, _, status = out.stdout.rpartition('\n')
     return status, body
-
-
-def project_ref(url):
-    m = re.match(r'https://([a-z0-9]+)\.supabase\.co', url or '')
-    return m.group(1) if m else None
 
 
 # ---------------------------------------------------------------- schema
@@ -68,7 +73,10 @@ def apply_schema(env):
         print('schema: applying schema.sql with psql …', flush=True)
         r = subprocess.run(['psql', env['SUPABASE_DB_URL'], '-v', 'ON_ERROR_STOP=1', '-q', '-f', os.path.join(HERE, 'schema.sql')], capture_output=True, text=True)
         if r.returncode != 0:
-            sys.exit('schema failed:\n' + (r.stderr or r.stdout))
+            err = (r.stderr or r.stdout)
+            if 'password authentication failed' in err:
+                err += '\nThe database password in .env is wrong. Reset it at Project Settings > Database > "Reset database password" and paste the new one.'
+            sys.exit('schema failed:\n' + err)
         print('schema: OK (tables, functions and policies are in place)')
         return True
     if usable(env.get('SUPABASE_ACCESS_TOKEN')) and project_ref(env.get('SUPABASE_URL')):
@@ -80,7 +88,7 @@ def apply_schema(env):
             sys.exit(f'schema failed: HTTP {status}\n{body[:800]}')
         print('schema: OK (tables, functions and policies are in place)')
         return True
-    print('schema: skipped. Put SUPABASE_DB_URL (or SUPABASE_ACCESS_TOKEN) in .env, or paste supabase/schema.sql into')
+    print('schema: skipped. Put SUPABASE_DB_PASSWORD (or SUPABASE_DB_URL / SUPABASE_ACCESS_TOKEN) in .env, or paste supabase/schema.sql into')
     print(f"        https://supabase.com/dashboard/project/{project_ref(env.get('SUPABASE_URL')) or '<ref>'}/sql/new and run it.")
     return False
 
@@ -137,7 +145,7 @@ def load_rows(env):
                 upsert(env['SUPABASE_URL'].rstrip('/'), env['SUPABASE_SERVICE_ROLE_KEY'], 'seoni_' + table, rows[table])
         print('data: OK')
         return True
-    print('data: skipped. Put SUPABASE_DB_URL (or SUPABASE_SERVICE_ROLE_KEY) in .env.')
+    print('data: skipped. Put SUPABASE_DB_PASSWORD (or SUPABASE_DB_URL / SUPABASE_SERVICE_ROLE_KEY) in .env.')
     return False
 
 

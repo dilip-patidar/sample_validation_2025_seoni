@@ -24,11 +24,12 @@ in Supabase, so everyone who opens the page sees the same review state.
 ### One-time setup (one command)
 
 1. Copy `.env.example` to `.env` (same folder; `.env` is git-ignored) and fill in:
-   - `SUPABASE_DB_URL` — in the Supabase dashboard click **Connect** (top bar), choose
-     **Session pooler**, copy the URI and put the database password in it
-     (Project Settings → Database; reset it there if you do not know it). This is what
-     creates the tables and loads the sheets. If you would rather not use the database
-     password, set `SUPABASE_ACCESS_TOKEN` (account token, creates the tables) and
+   - `SUPABASE_DB_PASSWORD` — the database password (Project Settings → Database; use
+     "Reset database password" if you do not know it). The user, host and database name
+     are already known from the project, so this one value is what creates the tables and
+     loads the sheets. A full `SUPABASE_DB_URL` (dashboard → Connect → Session pooler)
+     works too. If you would rather not use the database password, set
+     `SUPABASE_ACCESS_TOKEN` (account token, creates the tables) and
      `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API, loads the sheets) instead.
    - `GOOGLE_MAPS_API_KEY` — Google Cloud → APIs & Services → Credentials, with the
      *Maps JavaScript API* enabled. Restrict it to the URLs the page is served from
