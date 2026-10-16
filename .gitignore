@@ -6,3 +6,6 @@ __pycache__/
 .env.*
 # dry-run output of supabase/load_data.py
 supabase/dryrun/
+
+# keep the template, ignore real env files
+!.env.example

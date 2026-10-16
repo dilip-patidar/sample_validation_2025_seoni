@@ -21,43 +21,44 @@ There are two versions of the page:
 Reads everything from a Supabase project and shows it on Google Maps. Ticks are stored
 in Supabase, so everyone who opens the page sees the same review state.
 
-### One-time setup
+### One-time setup (one command)
 
-1. **Create the tables.** Open the project's SQL editor
-   (`https://supabase.com/dashboard/project/<project-ref>/sql/new`), paste the whole of
-   [`supabase/schema.sql`](supabase/schema.sql) and run it. It creates five tables
-   (`seoni_deployments`, `seoni_treatment_samples`, `seoni_control_plots`,
-   `seoni_control_samples`, `seoni_sample_reviews`), enables PostGIS, adds the functions the
-   page calls and read-only row level security for the anon key (ticks are writable).
-   Everything is prefixed `seoni_` so it sits beside tables you already have.
-2. **Load the sheets.** The loader needs the *service role* key (Project Settings → API).
-   Keep it out of the page and out of git:
+1. Copy `.env.example` to `.env` (same folder; `.env` is git-ignored) and fill in:
+   - `SUPABASE_DB_URL` — in the Supabase dashboard click **Connect** (top bar), choose
+     **Session pooler**, copy the URI and put the database password in it
+     (Project Settings → Database; reset it there if you do not know it). This is what
+     creates the tables and loads the sheets. If you would rather not use the database
+     password, set `SUPABASE_ACCESS_TOKEN` (account token, creates the tables) and
+     `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API, loads the sheets) instead.
+   - `GOOGLE_MAPS_API_KEY` — Google Cloud → APIs & Services → Credentials, with the
+     *Maps JavaScript API* enabled. Restrict it to the URLs the page is served from
+     (for a local check, `http://localhost:8765/*`).
+   - `SEONI_SHEETS_DIR` — the folder holding the four sheet exports (default `~/Downloads`).
+2. Run
 
    ```bash
-   export SUPABASE_URL="https://<project-ref>.supabase.co"
-   export SUPABASE_SERVICE_ROLE_KEY="<service role key>"
-   python3 supabase/load_data.py \
-     "$HOME/Downloads/Seoni Sample plots - Deployment.csv" \
-     "$HOME/Downloads/Seoni Sample plots - Treatement sample pair.csv" \
-     "$HOME/Downloads/Seoni Sample plots - Control_sampled_Plots.csv" \
-     "$HOME/Downloads/Seoni Sample plots - control_plot.csv"
+   python3 supabase/setup.py
    ```
 
-   Rows are upserted on their primary key, so re-run it whenever the sheets change.
-   Only `curl` and Python 3 are needed.
-3. **Keys in the page.** At the top of `seoni-sample-plots-google.html`, `SEONI_CONFIG`
-   holds the Supabase URL, the anon key (public by design) and the Google Maps API key.
-   The Google key needs the *Maps JavaScript API* enabled; restrict it to the URLs the
-   page is served from (for a local check, `http://localhost:8765/*`).
-4. **Open it.** Serve the folder and open the page, for example:
+   It creates the five `seoni_` tables, functions and policies from
+   [`supabase/schema.sql`](supabase/schema.sql), upserts the four sheets, writes the keys
+   into `seoni-sample-plots-google.html` and finally queries the live project with the anon
+   key to confirm the page will load. Re-run it (or `python3 supabase/setup.py --data`)
+   whenever the sheets change; rows are upserted on their primary key.
+   `psql` must be installed for the database connection (`brew install libpq`).
+3. Serve the folder and open the page:
 
    ```bash
    python3 -m http.server 8765
    ```
 
    then browse to `http://localhost:8765/seoni-sample-plots-google.html`. Opening the
-   file directly also works, but Google Maps keys restricted by referrer will reject a
+   file directly also works, but a Google Maps key restricted by referrer will reject a
    `file://` page.
+
+The Supabase anon key is public by design (row level security limits it to reading the
+data and writing review ticks); the database password, access token and service role key
+stay in `.env` and never go into the page or into git.
 
 ### How it loads
 
@@ -87,8 +88,10 @@ python3 build.py \
 seoni-sample-plots-google.html   Supabase + Google Maps page (fill in SEONI_CONFIG)
 seoni-sample-plots-map.html      self-contained MapLibre page (generated)
 template.html, build.py          source of the self-contained page
-supabase/schema.sql              tables, functions, policies (run once)
-supabase/load_data.py            CSV → Supabase upsert (needs the service role key)
+supabase/setup.py                one-command setup driven by .env (schema, data, page keys, check)
+supabase/schema.sql              tables, functions, policies
+supabase/load_data.py            sheet parsing + REST upsert (used by setup.py; also runs on its own)
+.env.example                     template for the keys
 ```
 
 Note: the pages and the Supabase tables contain farmer names and IDs from the sheets.

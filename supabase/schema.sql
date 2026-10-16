@@ -152,7 +152,7 @@ $$;
 -- crusher codes as the page filters them: upper-cased, trimmed, comma-joined in sheet order
 create or replace function public.seoni_crusher_norm(code text) returns text
 language sql immutable as $$
-  select array_to_string(array(select upper(trim(x)) from unnest(string_to_array(coalesce(code, ''), ',')) x where trim(x) <> ''), ', ');
+  select array_to_string(array(select upper(trim(t.x)) from unnest(string_to_array(coalesce(code, ''), ',')) as t(x) where trim(t.x) <> ''), ', ');
 $$;
 
 create or replace function public.seoni_crusher_stats() returns jsonb
@@ -191,14 +191,15 @@ create or replace function public.seoni_deployments_in_bbox(
   max_rows integer default 6000) returns jsonb
 language sql stable as $$
   select jsonb_build_object('type', 'FeatureCollection',
-    'features', coalesce(jsonb_agg(public.seoni_plot_feature(d)), '[]'),
+    'features', coalesce((select jsonb_agg(q.f) from (
+                   select public.seoni_plot_feature(d) as f
+                   from public.seoni_deployments d
+                   where d.geom && st_makeenvelope(min_lon, min_lat, max_lon, max_lat, 4326)
+                     and not exists (select 1 from public.seoni_treatment_samples t where t.plot_id = d.plot_id)
+                   limit max_rows) q), '[]'),
     'truncated', (select count(*) from public.seoni_deployments x
                    where x.geom && st_makeenvelope(min_lon, min_lat, max_lon, max_lat, 4326)
-                     and not exists (select 1 from public.seoni_treatment_samples t where t.plot_id = x.plot_id)) > max_rows)
-  from (select * from public.seoni_deployments x
-        where x.geom && st_makeenvelope(min_lon, min_lat, max_lon, max_lat, 4326)
-          and not exists (select 1 from public.seoni_treatment_samples t where t.plot_id = x.plot_id)
-        limit max_rows) d;
+                     and not exists (select 1 from public.seoni_treatment_samples t where t.plot_id = x.plot_id)) > max_rows);
 $$;
 
 -- all control plot polygons (131 or so): loaded once by the page
